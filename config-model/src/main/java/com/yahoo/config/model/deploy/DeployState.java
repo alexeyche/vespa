@@ -23,7 +23,7 @@ import com.yahoo.config.model.api.ValidationParameters;
 import com.yahoo.config.model.application.provider.BaseDeployLogger;
 import com.yahoo.config.model.application.provider.MockFileRegistry;
 import com.yahoo.config.model.provision.HostsXmlProvisioner;
-import com.yahoo.config.model.provision .SingleNodeProvisioner;
+import com.yahoo.config.model.provision.SingleNodeProvisioner;
 import com.yahoo.config.model.test.MockApplicationPackage;
 import com.yahoo.config.provision.DockerImage;
 import com.yahoo.config.provision.Zone;
@@ -32,6 +32,7 @@ import com.yahoo.searchdefinition.Application;
 import com.yahoo.searchdefinition.RankProfileRegistry;
 import com.yahoo.searchdefinition.Schema;
 import com.yahoo.searchdefinition.ApplicationBuilder;
+import com.yahoo.searchdefinition.NewApplicationBuilder;
 import com.yahoo.vespa.config.ConfigDefinition;
 import com.yahoo.vespa.config.ConfigDefinitionBuilder;
 import com.yahoo.vespa.config.ConfigDefinitionKey;
@@ -440,7 +441,7 @@ public class DeployState implements ConfigDefinitionStore {
             RankProfileRegistry rankProfileRegistry = new RankProfileRegistry();
             QueryProfiles queryProfiles = new QueryProfilesBuilder().build(applicationPackage, logger);
             SemanticRules semanticRules = new SemanticRuleBuilder().build(applicationPackage);
-            Application application = new ApplicationBuilder(applicationPackage, fileRegistry, logger, properties,
+            Application application = new NewApplicationBuilder(applicationPackage, fileRegistry, logger, properties,
                                                              rankProfileRegistry, queryProfiles.getRegistry())
                     .build(! validationParameters.ignoreValidationErrors());
             return new DeployState(application,

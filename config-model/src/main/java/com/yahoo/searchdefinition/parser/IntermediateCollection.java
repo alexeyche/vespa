@@ -42,7 +42,7 @@ public class IntermediateCollection {
 
     public ParsedSchema getParsedSchema(String name) { return parsedSchemas.get(name); }
 
-    ParsedSchema addSchemaFromString(String input) throws ParseException {
+    public ParsedSchema addSchemaFromString(String input) throws ParseException {
             var stream = new SimpleCharStream(input);
             var parser = new IntermediateParser(stream, deployLogger, modelProperties);
             var schema = parser.schema();
@@ -53,7 +53,7 @@ public class IntermediateCollection {
             return schema;
     }
 
-    private void addSchemaFromStringWithFileName(String input, String fileName) throws ParseException {
+    private String addSchemaFromStringWithFileName(String input, String fileName) throws ParseException {
         var parsed = addSchemaFromString(input);
         String nameFromFile = baseName(fileName);
         if (! parsed.name().equals(nameFromFile)) {
@@ -62,6 +62,7 @@ public class IntermediateCollection {
                                                + parsed.name() + ApplicationPackage.SD_NAME_SUFFIX
                                                + "', was '" + stripDirs(fileName) + "'");
         }
+        return parsed.name();
     }
 
     private String baseName(String filename) {
@@ -87,9 +88,11 @@ public class IntermediateCollection {
     /**
      * parse a schema from the given reader and add result to collection
      **/
-    public void addSchemaFromReader(NamedReader reader) {
+    public String addSchemaFromReader(NamedReader reader) {
         try {
-            addSchemaFromStringWithFileName(IOUtils.readAll(reader.getReader()), reader.getName());
+            var nameParsed = addSchemaFromStringWithFileName(IOUtils.readAll(reader.getReader()), reader.getName());
+            reader.close();
+            return nameParsed;
         } catch (java.io.IOException ex) {
             throw new IllegalArgumentException("Failed reading from " + reader.getName() + ": " + ex.getMessage());
         } catch (ParseException ex) {
@@ -99,9 +102,9 @@ public class IntermediateCollection {
     }
 
     /** for unit tests */
-    public void addSchemaFromFile(String fileName) {
+    public String addSchemaFromFile(String fileName) {
         try {
-            addSchemaFromStringWithFileName(IOUtils.readFile(new File(fileName)), fileName);
+            return addSchemaFromStringWithFileName(IOUtils.readFile(new File(fileName)), fileName);
         } catch (java.io.IOException ex) {
             throw new IllegalArgumentException("Could not read file " + fileName + ": " + ex.getMessage());
         } catch (ParseException ex) {

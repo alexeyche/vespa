@@ -148,6 +148,9 @@ class ParsedField extends ParsedBlock {
     void addSummaryField(ParsedSummaryField summaryField) {
         String fieldName = summaryField.name();
         verifyThat(! summaryFields.containsKey(fieldName), "already has summary field", fieldName);
+        if (summaryField.getType() == null) {
+            summaryField.setType(getType());
+        }
         summaryFields.put(fieldName, summaryField);
     }
 }
