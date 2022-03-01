@@ -1028,7 +1028,7 @@ void weightedsetBody(ParsedType type) : { }
 void rankType(ParsedField field) :
 {
     String typeName;
-    String indexName = field.name();
+    String indexName = "";
 }
 {
     <RANKTYPE> [indexName = identifier()] <COLON> typeName = identifier()

@@ -36,8 +36,10 @@ import com.yahoo.searchdefinition.RankingConstant;
 import com.yahoo.searchdefinition.Schema;
 import com.yahoo.searchdefinition.UnrankedRankProfile;
 import com.yahoo.searchdefinition.document.Attribute;
+import com.yahoo.searchdefinition.document.BooleanIndexDefinition;
 import com.yahoo.searchdefinition.document.Case;
 import com.yahoo.searchdefinition.document.Dictionary;
+import com.yahoo.searchdefinition.document.RankType;
 import com.yahoo.searchdefinition.document.SDDocumentType;
 import com.yahoo.searchdefinition.document.SDField;
 import com.yahoo.searchdefinition.document.Sorting;
@@ -478,6 +480,53 @@ public class ConvertSchemaCollection {
         field.addSummaryField(summary);
     }
 
+    private void convertRankType(SDField field, String indexName, String rankType) {
+        RankType type = RankType.fromString(rankType);
+        if (indexName == null) {
+            field.setRankType(type); // Set default if the index is not specified.
+        } else {
+            Index index = field.getIndex(indexName);
+            if (index == null) {
+                index = new Index(indexName);
+                field.addIndex(index);
+            }
+            index.setRankType(type);
+        }
+    }
+
+    private void convertIndex(SDField field, ParsedIndex parsed) {
+        String indexName = parsed.name();
+        Index index = field.getIndex(indexName);
+        if (index == null) {
+            index = new Index(indexName);
+            field.addIndex(index);
+        }
+        convertIndexSettings(index, parsed);
+    }
+
+    private void convertIndexSettings(Index index, ParsedIndex parsed) {
+        parsed.getPrefix().ifPresent(prefix -> index.setPrefix(prefix));
+        for (String alias : parsed.getAliases()) {
+            index.addAlias(alias);
+        }
+        parsed.getStemming().ifPresent(stemming -> index.setStemming(stemming));
+        var arity = parsed.getArity();
+        var lowerBound = parsed.getLowerBound();
+        var upperBound = parsed.getUpperBound();
+        var densePostingListThreshold = parsed.getDensePostingListThreshold();
+        if (arity.isPresent() || 
+            lowerBound.isPresent() ||
+            upperBound.isPresent() ||
+            densePostingListThreshold.isPresent())
+        {
+            var bid = new BooleanIndexDefinition(arity, lowerBound, upperBound, densePostingListThreshold);
+            index.setBooleanIndexDefiniton(bid);
+        }
+        parsed.getEnableBm25().ifPresent(enableBm25 -> index.setInterleavedFeatures(enableBm25));
+        parsed.getHnswIndexParams().ifPresent
+            (hnswIndexParams -> index.setHnswIndexParams(hnswIndexParams));
+    }
+
     private SDField convertDocumentField(Schema schema, SDDocumentType document, ParsedField parsed, ParsedDocument owner) {
         String name = parsed.name();
         var field = new SDField(document, name, resolveType(parsed.getType(), owner));
@@ -496,11 +545,13 @@ public class ConvertSchemaCollection {
             }
         }
         for (var structField : field.getStructFields()) {
+            
         }
         for (var attribute : parsed.getAttributes()) {
             convertAttribute(field, attribute);
         }
         for (var index : parsed.getIndexes()) {
+            convertIndex(field, index);
         }
         for (var summaryField : parsed.getSummaryFields()) {
             var dataType = resolveType(summaryField.getType(), owner);
@@ -512,8 +563,7 @@ public class ConvertSchemaCollection {
         for (String command : parsed.getQueryCommands()) {
             field.addQueryCommand(command);
         }
-        for (var rankTypeEntry : parsed.getRankTypes().entrySet()) {
-        }
+        parsed.getRankTypes().forEach((indexName, rankType) -> convertRankType(field, indexName, rankType));
         parsed.getSorting().ifPresent(sortInfo -> convertSorting(field, sortInfo, name));
         if (parsed.getBolding()) {
             // ugly bugly
@@ -551,8 +601,13 @@ public class ConvertSchemaCollection {
 
     private void convertExtraField(Schema schema, ParsedField field) {
     }
-    private void convertExtraIndex(Schema schema, ParsedIndex index) {
+
+    private void convertExtraIndex(Schema schema, ParsedIndex parsed) {
+        Index index = new Index(parsed.name());
+        convertIndexSettings(index, parsed);
+        schema.addIndex(index);
     }
+
     private void convertDocumentSummary(Schema schema, ParsedDocumentSummary docsum) {
     }
     private void convertImportField(Schema schema, ParsedSchema.ImportedField importedField) {
