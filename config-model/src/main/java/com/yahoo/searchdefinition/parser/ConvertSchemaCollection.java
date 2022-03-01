@@ -677,11 +677,28 @@ public class ConvertSchemaCollection {
         schema.addSummary(docsum);
     }
 
-    private void convertImportField(Schema schema, ParsedSchema.ImportedField importedField) {
+    private void convertImportField(Schema schema, ParsedSchema.ImportedField f) {
+        // needs rethinking
+        schema.temporaryImportedFields().get().add
+            (new TemporaryImportedField(f.asFieldName, f.refRieldName, f.foreignFieldName));
     }
-    private void convertFieldSet(Schema schema, ParsedFieldSet fieldSet) {
+
+    private void convertFieldSet(Schema schema, ParsedFieldSet parsed) {
+        String setName = parsed.name();
+        for (String field : parsed.getFieldNames()) {
+            schema.fieldSets().addUserFieldSetItem(setName, field);
+        }
+        for (String command : parsed.getQueryCommands()) {
+            schema.fieldSets().userFieldSets().get(setName).queryCommands().add(command);
+        }
+        // same ugliness as SDParser.jj used to have:
+        var tmp = new SDField(setName, DataType.STRING);
+        convertMatchSettings(tmp, parsed.matchSettings());
+        schema.fieldSets().userFieldSets().get(setName).setMatching(tmp.getMatching());
     }
+
     private void convertRankProfile(Schema schema, ParsedRankProfile rankProfile) {
+        
     }
 
     private void convertSchema(Schema schema, ParsedSchema parsed) {
