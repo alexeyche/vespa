@@ -452,8 +452,7 @@ public class ConvertSchemaCollection {
         }
     }
 
-    private void convertSummaryField(SDField field, ParsedSummaryField parsed, DataType type) {
-        var summary = new SummaryField(parsed.name(), type);
+    private void convertSummaryFieldSettings(SummaryField summary, ParsedSummaryField parsed) {
         summary.setVsmCommand(SummaryField.VsmCommand.FLATTENSPACE); // ? always ?
         var transform = SummaryTransform.NONE;
         if (parsed.getMatchedElementsOnly()) {
@@ -465,19 +464,24 @@ public class ConvertSchemaCollection {
             transform = transform.bold();
         }
         summary.setTransform(transform);
-        if (parsed.getSources().isEmpty()) {
-            summary.addSource(field.getName());
-        }
         for (String source : parsed.getSources()) {
             summary.addSource(source);
-        }
-        if (parsed.getDestinations().isEmpty()) {
-            summary.addDestination("default");
         }
         for (String destination : parsed.getDestinations()) {
             summary.addDestination(destination);
         }
         summary.setImplicit(false);
+    }
+
+    private void convertSummaryField(SDField field, ParsedSummaryField parsed, DataType type) {
+        var summary = new SummaryField(parsed.name(), type);
+        convertSummaryFieldSettings(summary, parsed);
+        if (parsed.getSources().isEmpty()) {
+            summary.addSource(field.getName());
+        }
+        if (parsed.getDestinations().isEmpty()) {
+            summary.addDestination("default");
+        }
         field.addSummaryField(summary);
     }
 
@@ -529,7 +533,7 @@ public class ConvertSchemaCollection {
     }
 
     // from grammar, things that can be inside struct-field block
-    private void convertCommonFieldSettings(SDField field, ParsedField parsed, ParsedDocument owner) {
+    private void convertCommonFieldSettings(SDField field, ParsedField parsed, ParsedDocument context) {
         convertMatchSettings(field, parsed.matchSettings());
         var indexing = parsed.getIndexing();
         if (indexing.isPresent()) {
@@ -541,18 +545,18 @@ public class ConvertSchemaCollection {
             convertAttribute(field, attribute);
         }
         for (var summaryField : parsed.getSummaryFields()) {
-            var dataType = resolveType(summaryField.getType(), owner);
+            var dataType = resolveType(summaryField.getType(), context);
             convertSummaryField(field, summaryField, dataType);
         }
         for (String command : parsed.getQueryCommands()) {
             field.addQueryCommand(command);
         }
         for (var structField : parsed.getStructFields()) {
-            convertStructField(field, structField, owner);
+            convertStructField(field, structField, context);
         }
     }
 
-    private void convertStructField(SDField field, ParsedField parsed, ParsedDocument owner) {
+    private void convertStructField(SDField field, ParsedField parsed, ParsedDocument context) {
         SDField structField = field.getStructField(parsed.name());
         // System.err.println("In field "+field);
         // field.dumpIdentity();
@@ -562,60 +566,18 @@ public class ConvertSchemaCollection {
             throw new IllegalArgumentException("Struct field '" + parsed.name() + "' has not been defined in struct " +
                                                "for field '" + field.getName() + "'.");
         }
-        convertCommonFieldSettings(structField, parsed, owner);
+        convertCommonFieldSettings(structField, parsed, context);
     }
 
-    private SDField convertDocumentField(Schema schema, SDDocumentType document, ParsedField parsed, ParsedDocument owner) {
+    private SDField convertDocumentField(Schema schema, SDDocumentType document, ParsedField parsed, ParsedDocument context) {
         String name = parsed.name();
-        //var field = new TemporarySDField(name, resolveType(parsed.getType(), owner), document);
+        DataType dataType = resolveType(parsed.getType(), context);
         // System.err.println("HERE 1");
-        var field = new SDField(document, name, resolveType(parsed.getType(), owner));
+        // var field = new TemporarySDField(name, dataType, document);
+        var field = new SDField(document, name, dataType);
         // System.err.println("DONE 1");
-        convertMatchSettings(field, parsed.matchSettings());
-        var indexing = parsed.getIndexing();
-        if (indexing.isPresent()) {
-            field.setIndexingScript(indexing.get().script());
-        }
-        for (var dictOp : parsed.getDictionaryOptions()) {
-            var dictionary = field.getOrSetDictionary();
-            switch (dictOp) {
-            case HASH:    dictionary.updateType(Dictionary.Type.HASH); break;
-            case BTREE:   dictionary.updateType(Dictionary.Type.BTREE); break;
-            case CASED:   dictionary.updateMatch(Case.CASED); break;
-            case UNCASED: dictionary.updateMatch(Case.UNCASED); break;
-            }
-        }
-        for (var structField : parsed.getStructFields()) {
-            convertStructField(field, structField, owner);
-        }
-        for (var attribute : parsed.getAttributes()) {
-            convertAttribute(field, attribute);
-        }
-        for (var index : parsed.getIndexes()) {
-            convertIndex(field, index);
-        }
-        for (var summaryField : parsed.getSummaryFields()) {
-            var dataType = resolveType(summaryField.getType(), owner);
-            convertSummaryField(field, summaryField, dataType);
-        }
-        for (var alias : parsed.getAliases()) {
-            field.getAliasToName().put(alias, parsed.lookupAliasedFrom(alias));
-        }
-        for (String command : parsed.getQueryCommands()) {
-            field.addQueryCommand(command);
-        }
-        parsed.getRankTypes().forEach((indexName, rankType) -> convertRankType(field, indexName, rankType));
-        parsed.getSorting().ifPresent(sortInfo -> convertSorting(field, sortInfo, name));
-        if (parsed.getBolding()) {
-            // ugly bugly
-            SummaryField summaryField = field.getSummaryField(name, true);
-            summaryField.addSource(name);
-            summaryField.addDestination("default");
-            summaryField.setTransform(summaryField.getTransform().bold());
-        }
-        if (parsed.getFilter()) {
-            field.getRanking().setFilter(true);
-        }
+        convertCommonFieldSettings(field, parsed, context);
+        convertExtraFieldSettings(field, parsed);
         document.addField(field);
         return field;
     }
@@ -646,7 +608,44 @@ public class ConvertSchemaCollection {
         schema.addDocument(document);
     }
 
-    private void convertExtraField(Schema schema, ParsedField field) {
+    private void convertExtraFieldSettings(SDField field, ParsedField parsed) {
+        String name = parsed.name();
+        for (var dictOp : parsed.getDictionaryOptions()) {
+            var dictionary = field.getOrSetDictionary();
+            switch (dictOp) {
+            case HASH:    dictionary.updateType(Dictionary.Type.HASH); break;
+            case BTREE:   dictionary.updateType(Dictionary.Type.BTREE); break;
+            case CASED:   dictionary.updateMatch(Case.CASED); break;
+            case UNCASED: dictionary.updateMatch(Case.UNCASED); break;
+            }
+        }
+        for (var index : parsed.getIndexes()) {
+            convertIndex(field, index);
+        }
+        for (var alias : parsed.getAliases()) {
+            field.getAliasToName().put(alias, parsed.lookupAliasedFrom(alias));
+        }
+        parsed.getRankTypes().forEach((indexName, rankType) -> convertRankType(field, indexName, rankType));
+        parsed.getSorting().ifPresent(sortInfo -> convertSorting(field, sortInfo, name));
+        if (parsed.getBolding()) {
+            // ugly bugly
+            SummaryField summaryField = field.getSummaryField(name, true);
+            summaryField.addSource(name);
+            summaryField.addDestination("default");
+            summaryField.setTransform(summaryField.getTransform().bold());
+        }
+        if (parsed.getFilter()) {
+            field.getRanking().setFilter(true);
+        }
+    }
+
+    private void convertExtraField(Schema schema, ParsedField parsed, ParsedDocument context) {
+        String name = parsed.name();
+        DataType dataType = resolveType(parsed.getType(), context);
+        var field = new SDField(schema.getDocument(), name, dataType);
+        convertCommonFieldSettings(field, parsed, context);
+        convertExtraFieldSettings(field, parsed);
+        schema.addExtraField(field);
     }
 
     private void convertExtraIndex(Schema schema, ParsedIndex parsed) {
@@ -655,8 +654,29 @@ public class ConvertSchemaCollection {
         schema.addIndex(index);
     }
 
-    private void convertDocumentSummary(Schema schema, ParsedDocumentSummary docsum) {
+    private void convertDocumentSummary(Schema schema, ParsedDocumentSummary parsed, ParsedDocument context) {
+        var docsum = new DocumentSummary(parsed.name(), schema);
+        var inheritList = parsed.getInherited();
+        if (inheritList.size() == 1) {
+            docsum.setInherited(inheritList.get(0));
+        } else if (inheritList.size() != 0) {
+            throw new IllegalArgumentException("document-summary "+parsed.name()+" cannot inherit more than once");
+        }
+        if (parsed.getFromDisk()) {
+            docsum.setFromDisk(true);
+        }
+        if (parsed.getOmitSummaryFeatures()) {
+            docsum.setOmitSummaryFeatures(true);
+        }
+        for (var parsedField : parsed.getSummaryFields()) {
+            DataType dataType = resolveType(parsedField.getType(), context);
+            var summaryField = new SummaryField(parsedField.name(), dataType);
+            convertSummaryFieldSettings(summaryField, parsedField);
+            docsum.add(summaryField);
+        }
+        schema.addSummary(docsum);
     }
+
     private void convertImportField(Schema schema, ParsedSchema.ImportedField importedField) {
     }
     private void convertFieldSet(Schema schema, ParsedFieldSet fieldSet) {
@@ -671,13 +691,13 @@ public class ConvertSchemaCollection {
         schema.enableRawAsBase64(parsed.getRawAsBase64());
         convertDocument(schema, parsed.getDocument());
         for (var field : parsed.getFields()) {
-            convertExtraField(schema, field);
+            convertExtraField(schema, field, parsed.getDocument());
         }
         for (var index : parsed.getIndexes()) {
             convertExtraIndex(schema, index);
         }
         for (var docsum : parsed.getDocumentSummaries()) {
-            convertDocumentSummary(schema, docsum);
+            convertDocumentSummary(schema, docsum, parsed.getDocument());
         }
         for (var importedField : parsed.getImportedFields()) {
             convertImportField(schema, importedField);
