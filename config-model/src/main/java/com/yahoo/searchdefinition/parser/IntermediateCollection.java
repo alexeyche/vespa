@@ -43,14 +43,15 @@ public class IntermediateCollection {
     public ParsedSchema getParsedSchema(String name) { return parsedSchemas.get(name); }
 
     public ParsedSchema addSchemaFromString(String input) throws ParseException {
-            var stream = new SimpleCharStream(input);
-            var parser = new IntermediateParser(stream, deployLogger, modelProperties);
-            var schema = parser.schema();
-            if (parsedSchemas.containsKey(schema.name())) {
-                throw new IllegalArgumentException("Duplicate schemas named: " + schema.name());
-            }
-            parsedSchemas.put(schema.name(), schema);
-            return schema;
+        // System.err.println("ADD schema: "+input);
+        var stream = new SimpleCharStream(input);
+        var parser = new IntermediateParser(stream, deployLogger, modelProperties);
+        var schema = parser.schema();
+        if (parsedSchemas.containsKey(schema.name())) {
+            throw new IllegalArgumentException("Duplicate schemas named: " + schema.name());
+        }
+        parsedSchemas.put(schema.name(), schema);
+        return schema;
     }
 
     private String addSchemaFromStringWithFileName(String input, String fileName) throws ParseException {

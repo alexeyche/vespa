@@ -49,6 +49,11 @@ import java.util.TreeMap;
  */
 public class SDField extends Field implements TypedKey, FieldOperationContainer, ImmutableSDField {
 
+    @Override
+    public void dumpIdentity() {
+        System.err.println("SDField "+getName()+" identity: "+System.identityHashCode(this));
+    }
+
     /** Use this field for modifying index-structure, even if it doesn't have any indexing code */
     private boolean indexStructureField = false;
 
@@ -167,18 +172,18 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
         populate(populate, repo, name, dataType, fieldMatching, recursion);
     }
 
-    public SDField(SDDocumentType repo,  String name, DataType dataType) {
-        this(repo, name,dataType, true);
+    public SDField(SDDocumentType repo, String name, DataType dataType) {
+        this(repo, name, dataType, true);
     }
     public SDField(String name, DataType dataType) {
-        this(null, name,dataType);
+        this(null, name, dataType);
     }
 
     private void populate(boolean populate, SDDocumentType repo, String name, DataType dataType) {
         populate(populate, repo, name, dataType, null, 0);
     }
 
-    private void populate(boolean populate, SDDocumentType repo, String name, DataType dataType, Matching fieldMatching,  int recursion) {
+    private void populate(boolean populate, SDDocumentType repo, String name, DataType dataType, Matching fieldMatching, int recursion) {
         if (dataType instanceof TensorDataType) {
             TensorType type = ((TensorDataType)dataType).getTensorType();
             if (type.dimensions().stream().anyMatch(d -> d.isIndexed() && d.size().isEmpty()))
@@ -191,7 +196,9 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
         }
         if (populate || (dataType instanceof MapDataType)) {
             populateWithStructFields(repo, name, dataType, recursion);
+            //System.err.println("BEG populate "+dataType+" with struct matching: "+name+" in "+repo);
             populateWithStructMatching(repo, name, dataType, fieldMatching);
+            //System.err.println("END populate "+dataType+" with struct matching: "+name+" in "+repo);
         }
     }
 
@@ -270,16 +277,18 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
 
     public void populateWithStructFields(SDDocumentType sdoc, String name, DataType dataType, int recursion) {
         DataType dt = getFirstStructOrMapRecursive();
+        //System.err.println("populateWithStructFields for "+name+" datatype dt="+dt+" in "+sdoc);
         if (dt == null) return;
 
         if (dataType instanceof MapDataType) {
             MapDataType mdt = (MapDataType) dataType;
             SDField keyField = new SDField(sdoc, name.concat(".key"), mdt.getKeyType(),
                                            getOwnerDocType(), new Matching(), true, recursion + 1);
-            structFields.put("key", keyField);
+            //System.err.println("add key field "+keyField);
+            structFields.putIfAbsent("key", keyField);
             SDField valueField = new SDField(sdoc, name.concat(".value"), mdt.getValueType(),
                                              getOwnerDocType(), new Matching(), true, recursion + 1);
-            structFields.put("value", valueField);
+            structFields.putIfAbsent("value", valueField);
         } else {
             if (recursion >= 10) return;
             if (dataType instanceof CollectionDataType) {
@@ -290,9 +299,12 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
                 if (subType == null) {
                     throw new IllegalArgumentException("Could not find struct '" + dataType.getName() + "'.");
                 }
+                //System.err.println("found struct "+dataType);
                 for (Field field : subType.fieldSet()) {
+                    //System.err.println("with field: "+field);
                     SDField subField = new SDField(sdoc, name.concat(".").concat(field.getName()), field.getDataType(),
                                                    subType, new Matching(), true, recursion + 1);
+                    //System.err.println("-> subfield: "+subField);
                     structFields.putIfAbsent(field.getName(), subField);
                 }
             }
@@ -302,6 +314,7 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
     public void populateWithStructMatching(SDDocumentType sdoc, String name, DataType dataType,
                                            Matching superFieldMatching) {
         DataType dt = getFirstStructOrMapRecursive();
+        //System.err.println("populateWithStructMatching for "+name+" datatype dt="+dt+" in "+sdoc);
         if (dt == null) return;
 
         if (dataType instanceof MapDataType) {
@@ -311,8 +324,10 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
             if (superFieldMatching != null) {
                 keyFieldMatching.merge(superFieldMatching);
             }
+            //System.err.println("look for key field "+name+".key");
             SDField keyField = structFields.get(name.concat(".key"));
             if (keyField != null) {
+                //System.err.println("set struct matching for "+name+".key type " + mdt.getKeyType());
                 keyField.populateWithStructMatching(sdoc, name.concat(".key"), mdt.getKeyType(), keyFieldMatching);
                 keyField.setMatching(keyFieldMatching);
             }
@@ -451,7 +466,9 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
         if (!wasConfiguredToDoAttributing()) {
             wasConfiguredToDoAttributing = doesAttributing();
         }
+        //System.err.println("set indexing script for "+this);
         if (!usesStructOrMap()) {
+            //System.err.println("maybe add attribute");
             new ExpressionVisitor() {
 
                 @Override
@@ -465,6 +482,8 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
                     }
                     Attribute attribute = attributes.get(fieldName);
                     if (attribute == null) {
+                        // dumpIdentity();
+                        // System.err.println("add attribute "+fieldName+" datatype "+getDataType());
                         addAttribute(new Attribute(fieldName, getDataType()));
                     }
                 }

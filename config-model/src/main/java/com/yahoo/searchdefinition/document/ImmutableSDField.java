@@ -21,6 +21,8 @@ import java.util.Map;
  */
 public interface ImmutableSDField {
 
+    void dumpIdentity();
+
     <T extends Expression> boolean containsExpression(Class<T> searchFor);
 
     boolean doesAttributing();

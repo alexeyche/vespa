@@ -55,6 +55,8 @@ public abstract class Derived implements Exportable {
         for (Field field : document.fieldSet()) {
             SDField sdField = (SDField) field;
             if ( ! sdField.isExtraField()) {
+                // System.err.println("derive for document field: "+sdField);
+                // sdField.dumpIdentity();
                 derive(sdField, schema);
             }
         }

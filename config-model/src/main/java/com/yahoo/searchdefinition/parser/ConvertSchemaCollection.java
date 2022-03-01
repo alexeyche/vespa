@@ -44,6 +44,7 @@ import com.yahoo.searchdefinition.document.SDDocumentType;
 import com.yahoo.searchdefinition.document.SDField;
 import com.yahoo.searchdefinition.document.Sorting;
 import com.yahoo.searchdefinition.document.Stemming;
+import com.yahoo.searchdefinition.document.TemporarySDField;
 import com.yahoo.searchlib.rankingexpression.FeatureList;
 import com.yahoo.searchlib.rankingexpression.evaluation.TensorValue;
 import com.yahoo.searchlib.rankingexpression.evaluation.Value;
@@ -527,14 +528,54 @@ public class ConvertSchemaCollection {
             (hnswIndexParams -> index.setHnswIndexParams(hnswIndexParams));
     }
 
+    // from grammar, things that can be inside struct-field block
+    private void convertCommonFieldSettings(SDField field, ParsedField parsed, ParsedDocument owner) {
+        convertMatchSettings(field, parsed.matchSettings());
+        var indexing = parsed.getIndexing();
+        if (indexing.isPresent()) {
+            // System.err.println("set indexing script for field "+field);
+            // field.dumpIdentity();
+            field.setIndexingScript(indexing.get().script());
+        }
+        for (var attribute : parsed.getAttributes()) {
+            convertAttribute(field, attribute);
+        }
+        for (var summaryField : parsed.getSummaryFields()) {
+            var dataType = resolveType(summaryField.getType(), owner);
+            convertSummaryField(field, summaryField, dataType);
+        }
+        for (String command : parsed.getQueryCommands()) {
+            field.addQueryCommand(command);
+        }
+        for (var structField : parsed.getStructFields()) {
+            convertStructField(field, structField, owner);
+        }
+    }
+
+    private void convertStructField(SDField field, ParsedField parsed, ParsedDocument owner) {
+        SDField structField = field.getStructField(parsed.name());
+        // System.err.println("In field "+field);
+        // field.dumpIdentity();
+        // System.err.println("is struct field "+structField);
+        // structField.dumpIdentity();
+        if (structField == null ) {
+            throw new IllegalArgumentException("Struct field '" + parsed.name() + "' has not been defined in struct " +
+                                               "for field '" + field.getName() + "'.");
+        }
+        convertCommonFieldSettings(structField, parsed, owner);
+    }
+
     private SDField convertDocumentField(Schema schema, SDDocumentType document, ParsedField parsed, ParsedDocument owner) {
         String name = parsed.name();
+        //var field = new TemporarySDField(name, resolveType(parsed.getType(), owner), document);
+        // System.err.println("HERE 1");
         var field = new SDField(document, name, resolveType(parsed.getType(), owner));
+        // System.err.println("DONE 1");
+        convertMatchSettings(field, parsed.matchSettings());
         var indexing = parsed.getIndexing();
         if (indexing.isPresent()) {
             field.setIndexingScript(indexing.get().script());
         }
-        convertMatchSettings(field, parsed.matchSettings());
         for (var dictOp : parsed.getDictionaryOptions()) {
             var dictionary = field.getOrSetDictionary();
             switch (dictOp) {
@@ -544,8 +585,8 @@ public class ConvertSchemaCollection {
             case UNCASED: dictionary.updateMatch(Case.UNCASED); break;
             }
         }
-        for (var structField : field.getStructFields()) {
-            
+        for (var structField : parsed.getStructFields()) {
+            convertStructField(field, structField, owner);
         }
         for (var attribute : parsed.getAttributes()) {
             convertAttribute(field, attribute);
@@ -588,6 +629,12 @@ public class ConvertSchemaCollection {
             String structId = parsed.name() + "->" + struct.name();
             var structProxy = new SDDocumentType(struct.name(), schema);
             structProxy.setStruct(structsInProgress.get(structId));
+            for (var structField : struct.getFields()) {
+                var fieldType = resolveType(structField.getType(), parsed);
+                //var tmp = new TemporarySDField(structField.name(), fieldType, structProxy);
+                var tmp = new SDField(structProxy, structField.name(), fieldType);
+                structProxy.addField(tmp);
+            }
             document.addType(structProxy);
         }
         for (var field : parsed.getFields()) {

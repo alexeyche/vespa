@@ -22,6 +22,11 @@ import java.util.Map;
  */
 public class ImmutableImportedSDField implements ImmutableSDField {
 
+    @Override
+    public void dumpIdentity() {
+        System.err.println("II SDField "+getName()+" identity: "+System.identityHashCode(this));
+    }
+
     private final ImportedField importedField;
 
     ImmutableImportedSDField(ImportedField importedField) {

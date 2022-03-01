@@ -52,6 +52,7 @@ public class AttributeFields extends Derived implements AttributesConfig.Produce
     /** Derives everything from a field */
     @Override
     protected void derive(ImmutableSDField field, Schema schema) {
+        // System.err.println("maybe derive attribute from: "+field);
         if (unsupportedFieldType(field)) {
             return; // Ignore complex struct and map fields for indexed search (only supported for streaming search)
         }
@@ -128,11 +129,14 @@ public class AttributeFields extends Derived implements AttributesConfig.Produce
     }
 
     private void deriveAttributeAsArrayType(ImmutableSDField field) {
+        // System.err.println("derive attribute as array type for field: "+field);
+        // field.dumpIdentity();
         if (field.isImportedField()) {
             deriveImportedAttributes(field);
             return;
         }
         Attribute attribute = field.getAttributes().get(field.getName());
+        // System.err.println("attribute for "+field.getName()+" is: "+attribute);
         if (attribute != null) {
             attributes.put(attribute.getName(), attribute.convertToArray());
         }

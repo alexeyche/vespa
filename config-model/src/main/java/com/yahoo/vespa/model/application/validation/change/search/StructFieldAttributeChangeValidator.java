@@ -63,6 +63,9 @@ public class StructFieldAttributeChangeValidator {
     }
 
     private List<VespaConfigChangeAction> validateAddAttributeAspect(Context current, Context next) {
+        current.structFieldAttributes.stream().forEach(attr -> System.err.println("current struct field attribute: "+attr));
+        next.structFieldAttributes.stream().forEach(attr -> System.err.println("nextgen struct field attribute: "+attr));
+
         return next.structFieldAttributes.stream()
                 .filter(nextAttr -> current.hasFieldForStructFieldAttribute(nextAttr) &&
                                     !current.hasStructFieldAttribute(nextAttr))
