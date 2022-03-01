@@ -1,11 +1,13 @@
 // Copyright Yahoo. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.searchdefinition.parser;
 
-
 import com.yahoo.config.application.api.ApplicationPackage;
 import com.yahoo.config.application.api.DeployLogger;
 import com.yahoo.config.application.api.FileRegistry;
 import com.yahoo.config.model.api.ModelContext;
+import com.yahoo.config.model.application.provider.BaseDeployLogger;
+import com.yahoo.config.model.application.provider.MockFileRegistry;
+import com.yahoo.config.model.deploy.TestProperties;
 import com.yahoo.config.model.test.MockApplicationPackage;
 import com.yahoo.document.DataType;
 import com.yahoo.document.DataTypeName;
@@ -34,6 +36,8 @@ import com.yahoo.searchdefinition.RankingConstant;
 import com.yahoo.searchdefinition.Schema;
 import com.yahoo.searchdefinition.UnrankedRankProfile;
 import com.yahoo.searchdefinition.document.Attribute;
+import com.yahoo.searchdefinition.document.Case;
+import com.yahoo.searchdefinition.document.Dictionary;
 import com.yahoo.searchdefinition.document.SDDocumentType;
 import com.yahoo.searchdefinition.document.SDField;
 import com.yahoo.searchdefinition.document.Sorting;
@@ -80,7 +84,11 @@ public class ConvertSchemaCollection {
                             DocumentTypeManager documentTypeManager)
     {
         this(input, documentTypeManager,
-             null, null, null, null, null,
+             MockApplicationPackage.createEmpty(),
+             new MockFileRegistry(),
+             new BaseDeployLogger(),
+             new TestProperties(),
+             new RankProfileRegistry(),
              true);
     }
 
@@ -375,7 +383,15 @@ public class ConvertSchemaCollection {
         return resultList;
     }
 
-    void convertMatchSettings(SDField field, ParsedMatchSettings matchInfo) {
+    void convertMatchSettings(SDField field, ParsedMatchSettings parsed) {
+        parsed.getMatchType().ifPresent(matchingType -> field.setMatchingType(matchingType));
+        parsed.getMatchCase().ifPresent(casing -> field.setMatchingCase(casing));
+        parsed.getGramSize().ifPresent(gramSize -> field.getMatching().setGramSize(gramSize));
+        parsed.getMaxLength().ifPresent(maxLength -> field.getMatching().maxLength(maxLength));
+        parsed.getMatchAlgorithm().ifPresent
+            (matchingAlgorithm -> field.setMatchingAlgorithm(matchingAlgorithm));
+        parsed.getExactTerminator().ifPresent
+            (exactMatchTerminator -> field.getMatching().setExactMatchTerminator(exactMatchTerminator));
     }
 
     void convertSorting(SDField field, ParsedSorting parsed, String name) {
@@ -462,7 +478,7 @@ public class ConvertSchemaCollection {
         field.addSummaryField(summary);
     }
 
-    private void convertDocumentField(Schema schema, SDDocumentType document, ParsedField parsed, ParsedDocument owner) {
+    private SDField convertDocumentField(Schema schema, SDDocumentType document, ParsedField parsed, ParsedDocument owner) {
         String name = parsed.name();
         var field = new SDField(document, name, resolveType(parsed.getType(), owner));
         var indexing = parsed.getIndexing();
@@ -471,6 +487,13 @@ public class ConvertSchemaCollection {
         }
         convertMatchSettings(field, parsed.matchSettings());
         for (var dictOp : parsed.getDictionaryOptions()) {
+            var dictionary = field.getOrSetDictionary();
+            switch (dictOp) {
+            case HASH:    dictionary.updateType(Dictionary.Type.HASH); break;
+            case BTREE:   dictionary.updateType(Dictionary.Type.BTREE); break;
+            case CASED:   dictionary.updateMatch(Case.CASED); break;
+            case UNCASED: dictionary.updateMatch(Case.UNCASED); break;
+            }
         }
         for (var structField : field.getStructFields()) {
         }
@@ -486,12 +509,14 @@ public class ConvertSchemaCollection {
         for (var alias : parsed.getAliases()) {
             field.getAliasToName().put(alias, parsed.lookupAliasedFrom(alias));
         }
-        for (var queryCommand : parsed.getQueryCommands()) {
+        for (String command : parsed.getQueryCommands()) {
+            field.addQueryCommand(command);
         }
         for (var rankTypeEntry : parsed.getRankTypes().entrySet()) {
         }
         parsed.getSorting().ifPresent(sortInfo -> convertSorting(field, sortInfo, name));
         if (parsed.getBolding()) {
+            // ugly bugly
             SummaryField summaryField = field.getSummaryField(name, true);
             summaryField.addSource(name);
             summaryField.addDestination("default");
@@ -501,6 +526,7 @@ public class ConvertSchemaCollection {
             field.getRanking().setFilter(true);
         }
         document.addField(field);
+        return field;
     }
 
     private void convertDocument(Schema schema, ParsedDocument parsed) {
@@ -515,7 +541,10 @@ public class ConvertSchemaCollection {
             document.addType(structProxy);
         }
         for (var field : parsed.getFields()) {
-            convertDocumentField(schema, document, field, parsed);
+            var sdf = convertDocumentField(schema, document, field, parsed);
+            if (field.hasIdOverride()) {
+                document.setFieldId(sdf, field.idOverride());
+            }
         }
         schema.addDocument(document);
     }
