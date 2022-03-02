@@ -2,7 +2,7 @@
 package com.yahoo.searchdefinition.processing;
 
 import com.yahoo.searchdefinition.Schema;
-import com.yahoo.searchdefinition.ApplicationBuilder;
+import com.yahoo.searchdefinition.NewApplicationBuilder;
 import com.yahoo.searchdefinition.parser.ParseException;
 import com.yahoo.vespa.documentmodel.SummaryTransform;
 import org.junit.Test;
@@ -39,7 +39,7 @@ public class SummaryConsistencyTestCase {
                 "",
                 "}"
         );
-        Schema schema = ApplicationBuilder.createFromString(sd).getSchema();
+        Schema schema = NewApplicationBuilder.createFromString(sd).getSchema();
         assertEquals(SummaryTransform.ATTRIBUTECOMBINER, schema.getSummaryField("elem_array_unfiltered").getTransform());
     }
 }

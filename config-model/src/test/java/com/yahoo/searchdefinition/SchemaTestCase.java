@@ -31,7 +31,7 @@ public class SchemaTestCase {
                     "  }" +
                     "}");
             DeployLoggerStub logger = new DeployLoggerStub();
-            ApplicationBuilder.createFromStrings(logger, schema);
+            NewApplicationBuilder.createFromStrings(logger, schema);
             assertEquals("schema 'test' inherits 'nonesuch', but this schema does not exist",
                          logger.entries.get(0).message);
             fail("Expected exception");
@@ -60,7 +60,7 @@ public class SchemaTestCase {
                     "    }" +
                     "  }" +
                     "}");
-            ApplicationBuilder.createFromStrings(new DeployLoggerStub(), parent, child);
+            NewApplicationBuilder.createFromStrings(new DeployLoggerStub(), parent, child);
             fail("Expected exception");
         }
         catch (IllegalArgumentException e) {
@@ -167,7 +167,7 @@ public class SchemaTestCase {
                 "  import field parentschema_ref.name as child2_imported {}" +
                 "}");
 
-        ApplicationBuilder builder = new ApplicationBuilder(new DeployLoggerStub());
+        NewApplicationBuilder builder = new NewApplicationBuilder(new DeployLoggerStub());
         builder.processorsToSkip().add(OnnxModelTypeResolver.class); // Avoid discovering the Onnx model referenced does not exist
         builder.processorsToSkip().add(ImportedFieldsResolver.class); // Avoid discovering the document reference leads nowhere
         builder.addSchema(parentLines);
@@ -308,7 +308,7 @@ public class SchemaTestCase {
                 "  }" +
                 "}");
 
-        ApplicationBuilder builder = new ApplicationBuilder(new DeployLoggerStub());
+        NewApplicationBuilder builder = new NewApplicationBuilder(new DeployLoggerStub());
         builder.processorsToSkip().add(OnnxModelTypeResolver.class); // Avoid discovering the Onnx model referenced does not exist
         builder.processorsToSkip().add(ImportedFieldsResolver.class); // Avoid discovering the document reference leads nowhere
         builder.addSchema(parentLines);
@@ -344,7 +344,7 @@ public class SchemaTestCase {
                     "  rank-profile r3 inherits r1, r2 {" +
                     "  }" +
                     "}");
-            ApplicationBuilder.createFromStrings(new DeployLoggerStub(), profile);
+            NewApplicationBuilder.createFromStrings(new DeployLoggerStub(), profile);
             fail("Expected exception");
         }
         catch (IllegalArgumentException e) {
@@ -382,7 +382,7 @@ public class SchemaTestCase {
                 "    }" +
                 "  }" +
                 "}");
-        var application = ApplicationBuilder.createFromStrings(new DeployLoggerStub(), profile).application();
+        var application = NewApplicationBuilder.createFromStrings(new DeployLoggerStub(), profile).application();
         var r3 = application.rankProfileRegistry().resolve(application.schemas().get("test").getDocument(), "r3");
         assertEquals(1, r3.allFilterFields().size());
     }
@@ -410,7 +410,7 @@ public class SchemaTestCase {
                     "  rank-profile r3 inherits r1, r2 {" +
                     "  }" +
                     "}");
-            ApplicationBuilder.createFromStrings(new DeployLoggerStub(), profile);
+            NewApplicationBuilder.createFromStrings(new DeployLoggerStub(), profile);
             fail("Expected exception");
         }
         catch (IllegalArgumentException e) {

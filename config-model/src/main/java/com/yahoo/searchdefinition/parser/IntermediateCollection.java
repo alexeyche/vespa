@@ -105,7 +105,9 @@ public class IntermediateCollection {
     /** for unit tests */
     public String addSchemaFromFile(String fileName) {
         try {
-            return addSchemaFromStringWithFileName(IOUtils.readFile(new File(fileName)), fileName);
+            // return addSchemaFromStringWithFileName(IOUtils.readFile(new File(fileName)), fileName);
+            var parsed = addSchemaFromString(IOUtils.readFile(new File(fileName)));
+            return parsed.name();
         } catch (java.io.IOException ex) {
             throw new IllegalArgumentException("Could not read file " + fileName + ": " + ex.getMessage());
         } catch (ParseException ex) {

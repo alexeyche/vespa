@@ -17,7 +17,7 @@ public class OutsideTestCase extends AbstractSchemaTestCase {
 
     @Test
     public void testOutsideIndex() throws IOException, ParseException {
-        Schema schema = ApplicationBuilder.buildFromFile("src/test/examples/outsidedoc.sd");
+        Schema schema = NewApplicationBuilder.buildFromFile("src/test/examples/outsidedoc.sd");
 
         Index defaultIndex= schema.getIndex("default");
         assertTrue(defaultIndex.isPrefix());
@@ -26,7 +26,7 @@ public class OutsideTestCase extends AbstractSchemaTestCase {
 
     @Test
     public void testOutsideSummary() throws IOException, ParseException {
-        ApplicationBuilder.buildFromFile("src/test/examples/outsidesummary.sd");
+        NewApplicationBuilder.buildFromFile("src/test/examples/outsidesummary.sd");
     }
 
 }

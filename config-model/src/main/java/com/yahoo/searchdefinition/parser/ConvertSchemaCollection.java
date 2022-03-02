@@ -258,14 +258,19 @@ public class ConvertSchemaCollection {
         case UNKNOWN:
             // fallthrough
         }
-        // unknown is probably struct, but could be document:
+        // unknown is probably struct
+        var found = findStructFrom(context, pType.name());
+        if (found != null) {
+            pType.setVariant(ParsedType.Variant.STRUCT);
+            System.err.println("Unknown type "+pType.name()+" -> struct");
+            return findStructInProgress(pType.name(), context);
+        }
         if (documentsInProgress.containsKey(pType.name())) {
             pType.setVariant(ParsedType.Variant.DOCUMENT);
+            System.err.println("Unknown type "+pType.name()+" -> document");
             return findDocInProgress(pType.name());
         }
-        var struct = findStructInProgress(pType.name(), context);
-        pType.setVariant(ParsedType.Variant.STRUCT);
-        return struct;
+        return findStructInProgress(pType.name(), context);
     }
 
     void convertDataTypes() {
@@ -470,6 +475,7 @@ public class ConvertSchemaCollection {
         for (String source : parsed.getSources()) {
             summary.addSource(source);
         }
+        summary.addDestination("default");
         for (String destination : parsed.getDestinations()) {
             summary.addDestination(destination);
         }
@@ -481,9 +487,6 @@ public class ConvertSchemaCollection {
         convertSummaryFieldSettings(summary, parsed);
         if (parsed.getSources().isEmpty()) {
             summary.addSource(field.getName());
-        }
-        if (parsed.getDestinations().isEmpty()) {
-            summary.addDestination("default");
         }
         field.addSummaryField(summary);
     }
@@ -568,7 +571,9 @@ public class ConvertSchemaCollection {
             convertAttribute(field, attribute);
         }
         for (var summaryField : parsed.getSummaryFields()) {
-            var dataType = resolveType(summaryField.getType(), context);
+            var dataType = field.getDataType();
+            var otherType = summaryField.getType();
+            if (otherType != null) dataType = resolveType(otherType, context);
             convertSummaryField(field, summaryField, dataType);
         }
         for (String command : parsed.getQueryCommands()) {
@@ -611,6 +616,7 @@ public class ConvertSchemaCollection {
             document.inherit(new DataTypeName(inherit));
         }
         for (var struct : parsed.getStructs()) {
+            // TODO - do we really need this mess
             String structId = parsed.name() + "->" + struct.name();
             var structProxy = new SDDocumentType(struct.name(), schema);
             structProxy.setStruct(structsInProgress.get(structId));
@@ -625,6 +631,7 @@ public class ConvertSchemaCollection {
             }
             document.addType(structProxy);
         }
+
         for (var field : parsed.getFields()) {
             var sdf = convertDocumentField(schema, document, field, parsed);
             if (field.hasIdOverride()) {

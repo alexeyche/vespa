@@ -326,8 +326,9 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
     public void populateWithStructMatching(SDDocumentType sdoc, String name, DataType dataType,
                                            Matching superFieldMatching) {
         DataType dt = getFirstStructOrMapRecursive();
-        //System.err.println("populateWithStructMatching for "+name+" datatype dt="+dt+" in "+sdoc);
         if (dt == null) return;
+        System.err.println("populateWithStructMatching for "+name+" datatype dt="+dt+" in "+sdoc);
+        if (dt != null) return;
 
         if (dataType instanceof MapDataType) {
             MapDataType mdt = (MapDataType) dataType;

@@ -39,15 +39,15 @@ public class ParsedSchema extends ParsedBlock {
     private final List<RankingConstant> rankingConstants = new ArrayList<>();
     private final List<String> inherited = new ArrayList<>();
     private final List<String> inheritedByDocument = new ArrayList<>();
-    private final Map<String, ParsedSchema> resolvedInherits = new HashMap();
-    private final Map<String, ParsedSchema> allResolvedInherits = new HashMap();
-    private final Map<String, ParsedAnnotation> extraAnnotations = new HashMap<>();
-    private final Map<String, ParsedDocumentSummary> docSums = new HashMap<>();
-    private final Map<String, ParsedField> extraFields = new HashMap<>();
-    private final Map<String, ParsedFieldSet> fieldSets = new HashMap<>();
-    private final Map<String, ParsedIndex> extraIndexes = new HashMap<>();
+    private final Map<String, ParsedSchema> resolvedInherits = new LinkedHashMap();
+    private final Map<String, ParsedSchema> allResolvedInherits = new LinkedHashMap();
+    private final Map<String, ParsedAnnotation> extraAnnotations = new LinkedHashMap<>();
+    private final Map<String, ParsedDocumentSummary> docSums = new LinkedHashMap<>();
+    private final Map<String, ParsedField> extraFields = new LinkedHashMap<>();
+    private final Map<String, ParsedFieldSet> fieldSets = new LinkedHashMap<>();
+    private final Map<String, ParsedIndex> extraIndexes = new LinkedHashMap<>();
     private final Map<String, ParsedRankProfile> rankProfiles = new LinkedHashMap<>();
-    private final Map<String, ParsedStruct> extraStructs = new HashMap<>();
+    private final Map<String, ParsedStruct> extraStructs = new LinkedHashMap<>();
 
     public ParsedSchema(String name) {
         super(name, "schema");

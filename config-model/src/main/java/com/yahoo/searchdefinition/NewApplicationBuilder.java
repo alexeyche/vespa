@@ -405,4 +405,53 @@ public class NewApplicationBuilder {
 
     public DeployLogger getDeployLogger() { return deployLogger; }
 
+
+    // TODO: The build methods below just call the create methods above - remove
+
+    /**
+     * Convenience factory method to import and build a {@link Schema} object from a file. Only for testing.
+     *
+     * @param fileName the file to build from
+     * @return the built {@link Schema} object
+     * @throws IOException    thrown if there was a problem reading the file
+     * @throws ParseException thrown if there was a problem parsing the file content
+     */
+    public static Schema buildFromFile(String fileName) throws IOException, ParseException {
+        return buildFromFile(fileName, new BaseDeployLogger(), new RankProfileRegistry(), new QueryProfileRegistry());
+    }
+
+    /**
+     * Convenience factory method to import and build a {@link Schema} object from a file.
+     *
+     * @param fileName the file to build from
+     * @param rankProfileRegistry registry for rank profiles
+     * @return the built {@link Schema} object
+     * @throws IOException    thrown if there was a problem reading the file
+     * @throws ParseException thrown if there was a problem parsing the file content
+     */
+    public static Schema buildFromFile(String fileName,
+                                       RankProfileRegistry rankProfileRegistry,
+                                       QueryProfileRegistry queryProfileRegistry)
+            throws IOException, ParseException {
+        return buildFromFile(fileName, new BaseDeployLogger(), rankProfileRegistry, queryProfileRegistry);
+    }
+
+    /**
+     * Convenience factory method to import and build a {@link Schema} from a file.
+     *
+     * @param fileName the file to build from
+     * @param deployLogger logger for deploy messages
+     * @param rankProfileRegistry registry for rank profiles
+     * @return the built {@link Schema} object
+     * @throws IOException    thrown if there was a problem reading the file
+     * @throws ParseException thrown if there was a problem parsing the file content
+     */
+    public static Schema buildFromFile(String fileName,
+                                       DeployLogger deployLogger,
+                                       RankProfileRegistry rankProfileRegistry,
+                                       QueryProfileRegistry queryProfileRegistry)
+            throws IOException, ParseException {
+        return createFromFile(fileName, deployLogger, rankProfileRegistry, queryProfileRegistry).getSchema();
+    }
+
 }

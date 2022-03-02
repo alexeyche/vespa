@@ -14,6 +14,6 @@ import java.io.IOException;
 public class MultipleSummariesTestCase extends AbstractSchemaTestCase {
     @Test
     public void testArrayImporting() throws IOException, ParseException {
-        ApplicationBuilder.buildFromFile("src/test/examples/multiplesummaries.sd");
+        NewApplicationBuilder.buildFromFile("src/test/examples/multiplesummaries.sd");
     }
 }

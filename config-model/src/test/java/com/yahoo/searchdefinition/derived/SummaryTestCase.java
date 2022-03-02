@@ -3,7 +3,7 @@ package com.yahoo.searchdefinition.derived;
 
 import com.yahoo.config.model.application.provider.BaseDeployLogger;
 import com.yahoo.searchdefinition.Schema;
-import com.yahoo.searchdefinition.ApplicationBuilder;
+import com.yahoo.searchdefinition.NewApplicationBuilder;
 import com.yahoo.searchdefinition.AbstractSchemaTestCase;
 import com.yahoo.searchdefinition.parser.ParseException;
 import com.yahoo.vespa.config.search.SummaryConfig;
@@ -35,7 +35,7 @@ public class SummaryTestCase extends AbstractSchemaTestCase {
                 "      }",
                 "  }",
                 "}");
-        Schema schema = ApplicationBuilder.createFromString(sd).getSchema();
+        Schema schema = NewApplicationBuilder.createFromString(sd).getSchema();
         SummaryClass summary = new SummaryClass(schema, schema.getSummary("default"), new BaseDeployLogger());
         assertEquals(SummaryClassField.Type.RAW, summary.getField("raw_field").getType());
     }
@@ -50,14 +50,14 @@ public class SummaryTestCase extends AbstractSchemaTestCase {
                 "      }",
                 "  }",
                 "}");
-        Schema schema = ApplicationBuilder.createFromString(sd).getSchema();
+        Schema schema = NewApplicationBuilder.createFromString(sd).getSchema();
         SummaryClass summary = new SummaryClass(schema, schema.getSummary("default"), new BaseDeployLogger());
         assertEquals(SummaryClassField.Type.DATA, summary.getField("raw_field").getType());
     }
 
     @Test
     public void testDeriving() throws IOException, ParseException {
-        Schema schema = ApplicationBuilder.buildFromFile("src/test/examples/simple.sd");
+        Schema schema = NewApplicationBuilder.buildFromFile("src/test/examples/simple.sd");
         SummaryClass summary = new SummaryClass(schema, schema.getSummary("default"), new BaseDeployLogger());
         assertEquals("default", summary.getName());
 
@@ -134,7 +134,7 @@ public class SummaryTestCase extends AbstractSchemaTestCase {
     }
 
     private static Schema buildCampaignAdModel() throws ParseException {
-        ApplicationBuilder builder = new ApplicationBuilder();
+        NewApplicationBuilder builder = new NewApplicationBuilder();
         builder.addSchema("search campaign { document campaign {} }");
         builder.addSchema(joinLines("search ad {",
                                     "  document ad {",
@@ -168,7 +168,7 @@ public class SummaryTestCase extends AbstractSchemaTestCase {
                 "    summary foo type string {}",
                 "  }",
                 "}");
-        var search = ApplicationBuilder.createFromString(sd).getSchema();
+        var search = NewApplicationBuilder.createFromString(sd).getSchema();
         assertOmitSummaryFeatures(true, search, "bar");
         assertOmitSummaryFeatures(false, search, "baz");
     }

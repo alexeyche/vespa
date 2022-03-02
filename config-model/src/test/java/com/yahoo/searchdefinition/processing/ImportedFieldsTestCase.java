@@ -2,7 +2,7 @@
 package com.yahoo.searchdefinition.processing;
 
 import com.yahoo.searchdefinition.Schema;
-import com.yahoo.searchdefinition.ApplicationBuilder;
+import com.yahoo.searchdefinition.NewApplicationBuilder;
 import com.yahoo.searchdefinition.derived.AttributeFields;
 import com.yahoo.searchdefinition.document.ImportedComplexField;
 import com.yahoo.searchdefinition.document.ImportedField;
@@ -68,7 +68,7 @@ public class ImportedFieldsTestCase {
     }
 
     private static Schema buildAdSearch(String sdContent) throws ParseException {
-        ApplicationBuilder builder = new ApplicationBuilder();
+        NewApplicationBuilder builder = new NewApplicationBuilder();
         builder.addSchema(joinLines(
                 "schema campaign {",
                 "  document campaign {",
@@ -312,7 +312,7 @@ public class ImportedFieldsTestCase {
     }
 
     private static Schema buildChildSearch(String parentSdContent, String sdContent) throws ParseException {
-        ApplicationBuilder builder = new ApplicationBuilder();
+        NewApplicationBuilder builder = new NewApplicationBuilder();
         builder.addSchema(parentSdContent);
         builder.addSchema(sdContent);
         builder.build(true);
@@ -320,7 +320,7 @@ public class ImportedFieldsTestCase {
     }
 
     private static Schema buildChildSearch(String grandParentSdContent, String parentSdContent, String sdContent) throws ParseException {
-        ApplicationBuilder builder = new ApplicationBuilder();
+        NewApplicationBuilder builder = new NewApplicationBuilder();
         builder.addSchema(grandParentSdContent);
         builder.addSchema(parentSdContent);
         builder.addSchema(sdContent);
@@ -488,8 +488,8 @@ public class ImportedFieldsTestCase {
         assertTrue(attrs.containsAttribute("entries.value"));
     }
 
-    private ApplicationBuilder buildParentsUsingInheritance() throws ParseException {
-        var builder = new ApplicationBuilder();
+    private NewApplicationBuilder buildParentsUsingInheritance() throws ParseException {
+        var builder = new NewApplicationBuilder();
         builder.addSchema(joinLines("schema parent_a {",
                                     "document parent_a {",
                                     "  struct Entry {",

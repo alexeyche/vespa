@@ -8,8 +8,8 @@ import org.junit.Test;
 import java.util.Optional;
 
 import static com.yahoo.config.model.test.TestUtil.joinLines;
-import static com.yahoo.searchdefinition.ApplicationBuilder.createFromString;
-import static com.yahoo.searchdefinition.ApplicationBuilder.createFromStrings;
+import static com.yahoo.searchdefinition.NewApplicationBuilder.createFromString;
+import static com.yahoo.searchdefinition.NewApplicationBuilder.createFromStrings;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

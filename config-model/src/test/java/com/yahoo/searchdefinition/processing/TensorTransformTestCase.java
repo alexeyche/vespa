@@ -14,7 +14,7 @@ import com.yahoo.searchdefinition.LargeRankExpressions;
 import com.yahoo.searchdefinition.RankProfile;
 import com.yahoo.searchdefinition.RankProfileRegistry;
 import com.yahoo.searchdefinition.Schema;
-import com.yahoo.searchdefinition.ApplicationBuilder;
+import com.yahoo.searchdefinition.NewApplicationBuilder;
 import com.yahoo.searchdefinition.AbstractSchemaTestCase;
 import com.yahoo.searchdefinition.derived.AttributeFields;
 import com.yahoo.searchdefinition.derived.RawRankProfile;
@@ -140,7 +140,7 @@ public class TensorTransformTestCase extends AbstractSchemaTestCase {
     private List<Pair<String, String>> buildSearch(String expression) throws ParseException {
         RankProfileRegistry rankProfileRegistry = new RankProfileRegistry();
         QueryProfileRegistry queryProfiles = setupQueryProfileTypes();
-        ApplicationBuilder builder = new ApplicationBuilder(rankProfileRegistry, queryProfiles);
+        NewApplicationBuilder builder = new NewApplicationBuilder(rankProfileRegistry, queryProfiles);
         builder.addSchema(
                 "search test {\n" +
                 "    document test { \n" +

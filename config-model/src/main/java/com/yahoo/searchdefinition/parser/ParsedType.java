@@ -44,6 +44,7 @@ class ParsedType {
         case "uri":       return Variant.BUILTIN;
         case "predicate": return Variant.BUILTIN;
         case "raw":       return Variant.BUILTIN;
+        case "tag":       return Variant.BUILTIN;
         case "position":  return Variant.POSITION;
         }
         return Variant.UNKNOWN;

@@ -70,7 +70,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     public void requireThatIllegalInheritanceIsChecked() throws ParseException {
         try {
             RankProfileRegistry registry = new RankProfileRegistry();
-            ApplicationBuilder builder = new ApplicationBuilder(registry, setupQueryProfileTypes());
+            NewApplicationBuilder builder = new NewApplicationBuilder(registry, setupQueryProfileTypes());
             builder.addSchema(joinLines(
                     "search test {",
                     "  document test { } ",
@@ -87,7 +87,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     public void requireThatSelfInheritanceIsIllegal() throws ParseException {
         try {
             RankProfileRegistry registry = new RankProfileRegistry();
-            ApplicationBuilder builder = new ApplicationBuilder(registry, setupQueryProfileTypes());
+            NewApplicationBuilder builder = new NewApplicationBuilder(registry, setupQueryProfileTypes());
             builder.addSchema(joinLines(
                     "schema test {",
                     "  document test { } ",
@@ -103,7 +103,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     @Test
     public void requireThatSelfInheritanceIsLegalWhenOverloading() throws ParseException {
         RankProfileRegistry registry = new RankProfileRegistry();
-        ApplicationBuilder builder = new ApplicationBuilder(registry, setupQueryProfileTypes());
+        NewApplicationBuilder builder = new NewApplicationBuilder(registry, setupQueryProfileTypes());
         builder.addSchema(joinLines(
                 "schema base {",
                 "  document base { } ",
@@ -120,7 +120,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     @Test
     public void requireThatSidewaysInheritanceIsImpossible() throws ParseException {
         RankProfileRegistry registry = new RankProfileRegistry();
-        ApplicationBuilder builder = new ApplicationBuilder(registry, setupQueryProfileTypes());
+        NewApplicationBuilder builder = new NewApplicationBuilder(registry, setupQueryProfileTypes());
         builder.addSchema(joinLines(
                 "schema child1 {",
                 "  document child1 {",
@@ -173,7 +173,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     @Test
     public void requireThatDefaultInheritingDefaultIsIgnored() throws ParseException {
         RankProfileRegistry registry = new RankProfileRegistry();
-        ApplicationBuilder builder = new ApplicationBuilder(registry, setupQueryProfileTypes());
+        NewApplicationBuilder builder = new NewApplicationBuilder(registry, setupQueryProfileTypes());
         builder.addSchema(joinLines(
                 "schema test {",
                 "  document test { } ",
@@ -186,7 +186,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     public void requireThatCyclicInheritanceIsIllegal() throws ParseException {
         try {
             RankProfileRegistry registry = new RankProfileRegistry();
-            ApplicationBuilder builder = new ApplicationBuilder(registry, setupQueryProfileTypes());
+            NewApplicationBuilder builder = new NewApplicationBuilder(registry, setupQueryProfileTypes());
             builder.addSchema(joinLines(
                     "search test {",
                     "  document test { } ",
@@ -205,7 +205,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     public void requireThatRankProfilesCanInheritNotYetSeenProfiles() throws ParseException
     {
         RankProfileRegistry registry = new RankProfileRegistry();
-        ApplicationBuilder builder = new ApplicationBuilder(registry, setupQueryProfileTypes());
+        NewApplicationBuilder builder = new NewApplicationBuilder(registry, setupQueryProfileTypes());
         builder.addSchema(joinLines(
                 "search test {",
                 "  document test { } ",
@@ -247,7 +247,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
 
     private void verifyTermwiseLimitAndSomeMoreIncludingInheritance(ModelContext.Properties deployProperties, String sd, Double termwiseLimit) throws ParseException {
         RankProfileRegistry rankProfileRegistry = new RankProfileRegistry();
-        ApplicationBuilder builder = new ApplicationBuilder(rankProfileRegistry);
+        NewApplicationBuilder builder = new NewApplicationBuilder(rankProfileRegistry);
         builder.addSchema(sd);
         builder.build(true);
         Schema schema = builder.getSchema();
@@ -280,7 +280,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     @Test
     public void requireThatConfigIsDerivedForAttributeTypeSettings() throws ParseException {
         RankProfileRegistry registry = new RankProfileRegistry();
-        ApplicationBuilder builder = new ApplicationBuilder(registry);
+        NewApplicationBuilder builder = new NewApplicationBuilder(registry);
         builder.addSchema(joinLines(
                 "search test {",
                 "  document test { ",
@@ -304,7 +304,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     @Test
     public void requireThatDenseDimensionsMustBeBound() throws ParseException {
         try {
-            ApplicationBuilder builder = new ApplicationBuilder(new RankProfileRegistry());
+            NewApplicationBuilder builder = new NewApplicationBuilder(new RankProfileRegistry());
             builder.addSchema(joinLines(
                     "search test {",
                     "  document test { ",
@@ -333,7 +333,7 @@ public class RankProfileTestCase extends AbstractSchemaTestCase {
     @Test
     public void requireThatConfigIsDerivedForQueryFeatureTypeSettings() throws ParseException {
         RankProfileRegistry registry = new RankProfileRegistry();
-        ApplicationBuilder builder = new ApplicationBuilder(registry, setupQueryProfileTypes());
+        NewApplicationBuilder builder = new NewApplicationBuilder(registry, setupQueryProfileTypes());
         builder.addSchema(joinLines(
                 "search test {",
                 "  document test { } ",

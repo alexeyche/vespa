@@ -8,7 +8,7 @@ import com.yahoo.config.model.deploy.TestProperties;
 import com.yahoo.document.config.DocumenttypesConfig;
 import com.yahoo.document.config.DocumentmanagerConfig;
 import com.yahoo.searchdefinition.Schema;
-import com.yahoo.searchdefinition.ApplicationBuilder;
+import com.yahoo.searchdefinition.NewApplicationBuilder;
 import com.yahoo.searchdefinition.AbstractSchemaTestCase;
 import com.yahoo.searchdefinition.parser.ParseException;
 import ai.vespa.rankingexpression.importer.configmodelview.ImportedMlModels;
@@ -38,14 +38,14 @@ public abstract class AbstractExportingTestCase extends AbstractSchemaTestCase {
         toDir.mkdirs();
         deleteContent(toDir);
 
-        ApplicationBuilder builder = ApplicationBuilder.createFromDirectory(searchDefRoot + dirName + "/", new MockFileRegistry(), logger, properties);
+        NewApplicationBuilder builder = NewApplicationBuilder.createFromDirectory(searchDefRoot + dirName + "/", new MockFileRegistry(), logger, properties);
         return derive(dirName, searchDefinitionName, properties, builder, logger);
     }
 
     private DerivedConfiguration derive(String dirName,
                                         String searchDefinitionName,
                                         TestProperties properties,
-                                        ApplicationBuilder builder,
+                                        NewApplicationBuilder builder,
                                         DeployLogger logger) throws IOException {
         DerivedConfiguration config = new DerivedConfiguration(builder.getSchema(searchDefinitionName),
                                                                logger,
@@ -57,14 +57,14 @@ public abstract class AbstractExportingTestCase extends AbstractSchemaTestCase {
         return export(dirName, builder, config);
     }
 
-    DerivedConfiguration derive(String dirName, ApplicationBuilder builder, Schema schema) throws IOException {
+    DerivedConfiguration derive(String dirName, NewApplicationBuilder builder, Schema schema) throws IOException {
         DerivedConfiguration config = new DerivedConfiguration(schema,
                                                                builder.getRankProfileRegistry(),
                                                                builder.getQueryProfileRegistry());
         return export(dirName, builder, config);
     }
 
-    private DerivedConfiguration export(String name, ApplicationBuilder builder, DerivedConfiguration config) throws IOException {
+    private DerivedConfiguration export(String name, NewApplicationBuilder builder, DerivedConfiguration config) throws IOException {
         String path = exportConfig(name, config);
         DerivedConfiguration.exportDocuments(new DocumentManager().useV8DocManagerCfg(useV8DocManagerCfg())
                                              .produce(builder.getModel(), new DocumentmanagerConfig.Builder()), path);
@@ -119,14 +119,14 @@ public abstract class AbstractExportingTestCase extends AbstractSchemaTestCase {
      * Asserts config is correctly derived given a builder.
      * This will fail if the builder contains multiple search definitions.
      */
-    protected DerivedConfiguration assertCorrectDeriving(ApplicationBuilder builder, String dirName, DeployLogger logger) throws IOException {
+    protected DerivedConfiguration assertCorrectDeriving(NewApplicationBuilder builder, String dirName, DeployLogger logger) throws IOException {
         builder.build(true);
         DerivedConfiguration derived = derive(dirName, null, new TestProperties(), builder, logger);
         assertCorrectConfigFiles(dirName);
         return derived;
     }
 
-    protected DerivedConfiguration assertCorrectDeriving(ApplicationBuilder builder, Schema schema, String name) throws IOException {
+    protected DerivedConfiguration assertCorrectDeriving(NewApplicationBuilder builder, Schema schema, String name) throws IOException {
         DerivedConfiguration derived = derive(name, builder, schema);
         assertCorrectConfigFiles(name);
         return derived;

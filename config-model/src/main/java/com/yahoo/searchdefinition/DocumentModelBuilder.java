@@ -278,9 +278,14 @@ public class DocumentModelBuilder {
         }
         else if (type instanceof ReferenceDataType) {
             ReferenceDataType t = (ReferenceDataType) type;
-            if (t.getTargetType() instanceof TemporaryStructuredDataType) {
-                DataType targetType = resolveTemporariesRecurse(t.getTargetType(), repo, docs, replacements);
+            DataType targetType = t.getTargetType();
+            if (! (targetType instanceof NewDocumentType)) {
+                t = ReferenceDataType.createWithInferredId
+                    (TemporaryStructuredDataType.create(targetType.getName()));
+                targetType = resolveTemporariesRecurse(targetType, repo, docs, replacements);
+                assert(targetType instanceof NewDocumentType);
                 t.setTargetType((StructuredDataType) targetType);
+                type = t;
             }
         }
         if (type != original) {
