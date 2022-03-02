@@ -125,7 +125,6 @@ public class ParsedSchema extends ParsedBlock {
     void addRankProfile(ParsedRankProfile profile) {
         String rpName = profile.name();
         verifyThat(! rankProfiles.containsKey(rpName), "already has rank-profile", rpName);
-        System.err.println("parsed rank-profile "+rpName);
         rankProfiles.put(rpName, profile);
     }
 

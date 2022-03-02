@@ -299,22 +299,22 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
                 dataType = ((CollectionDataType)dataType).getNestedType();
             }
             if (dataType instanceof TemporaryStructuredDataType) {
-                System.err.println("found temp struct "+dataType);
+                // System.err.println("found temp struct "+dataType);
                 SDDocumentType subType = sdoc != null ? sdoc.getType(dataType.getName()) : null;
                 if (subType == null) {
                     throw new IllegalArgumentException("Could not find struct '" + dataType.getName() + "'.");
                 }
                 for (Field field : subType.fieldSet()) {
-                    System.err.println("with field: "+field);
+                    // System.err.println("with field: "+field);
                     SDField subField = new SDField(sdoc, name.concat(".").concat(field.getName()), field.getDataType(),
                                                    subType, new Matching(), true, recursion + 1);
                     structFields.putIfAbsent(field.getName(), subField);
                 }
             } else if (dataType instanceof StructDataType) {
-                System.err.println("found struct "+dataType);
+                // System.err.println("found struct "+dataType);
                 var sdt = (StructDataType) dataType;
                 for (Field field : sdt.getFields()) {
-                    System.err.println("with field: "+field);
+                    // System.err.println("with field: "+field);
                     SDField subField = new SDField(sdoc, name.concat(".").concat(field.getName()), field.getDataType(),
                                                    getOwnerDocType(), new Matching(), true, recursion + 1);
                     structFields.putIfAbsent(field.getName(), subField);

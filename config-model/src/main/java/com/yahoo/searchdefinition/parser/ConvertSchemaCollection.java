@@ -723,11 +723,6 @@ public class ConvertSchemaCollection {
         schema.fieldSets().userFieldSets().get(setName).setMatching(tmp.getMatching());
     }
 
-    void handleFPR(RankProfile profile, String value) {
-        System.err.println("handleFPR profile="+profile+", value="+value);
-        profile.setFirstPhaseRanking(value);
-    }
-
     private RankProfile makeRankProfile(Schema schema, String name) {
         if (name.equals("default")) {
             return rankProfileRegistry.get(schema, "default");
@@ -819,7 +814,6 @@ public class ConvertSchemaCollection {
             ((key, val) -> profile.addRankProperty(key, val));
 
         // always?
-        System.err.println("register rank profile "+profile+" in schema "+schema);
         rankProfileRegistry.add(profile);
     }
 
