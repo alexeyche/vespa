@@ -9,6 +9,7 @@ import com.yahoo.searchlib.rankingexpression.evaluation.Value;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,7 +44,7 @@ class ParsedRankProfile extends ParsedBlock {
     private final List<String> inherited = new ArrayList<>();
     private final Map<String, Boolean> fieldsRankFilter = new HashMap<>();
     private final Map<String, Integer> fieldsRankWeight = new HashMap<>();
-    private final Map<String, ParsedRankFunction> functions = new HashMap<>();
+    private final Map<String, ParsedRankFunction> functions = new LinkedHashMap<>();
     private final Map<String, String> fieldsRankType = new HashMap<>();
     private final Map<String, String> rankProperties =  new HashMap<>();
     private final Map<String, Value> constants = new HashMap<>();

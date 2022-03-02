@@ -39,11 +39,14 @@ import com.yahoo.searchdefinition.document.Attribute;
 import com.yahoo.searchdefinition.document.BooleanIndexDefinition;
 import com.yahoo.searchdefinition.document.Case;
 import com.yahoo.searchdefinition.document.Dictionary;
+import com.yahoo.searchdefinition.document.NormalizeLevel;
 import com.yahoo.searchdefinition.document.RankType;
 import com.yahoo.searchdefinition.document.SDDocumentType;
 import com.yahoo.searchdefinition.document.SDField;
 import com.yahoo.searchdefinition.document.Sorting;
 import com.yahoo.searchdefinition.document.Stemming;
+import com.yahoo.searchdefinition.document.TemporaryImportedField;
+import com.yahoo.searchdefinition.document.TemporaryImportedFields;
 import com.yahoo.searchdefinition.document.TemporarySDField;
 import com.yahoo.searchlib.rankingexpression.FeatureList;
 import com.yahoo.searchlib.rankingexpression.evaluation.TensorValue;
@@ -377,10 +380,10 @@ public class ConvertSchemaCollection {
             } else {
                 throw new IllegalArgumentException("schema " + parsed.name() + "cannot inherit more than once");
             }
-            Schema schema = new Schema(parsed.name(), applicationPackage, inherited, fileRegistry, deployLogger, properties);
+            Schema schema = parsed.getDocumentWithoutSchema()
+                ? new DocumentOnlySchema(applicationPackage, fileRegistry, deployLogger, properties)
+                : new Schema(parsed.name(), applicationPackage, inherited, fileRegistry, deployLogger, properties);
             convertSchema(schema, parsed);
-            rankProfileRegistry.add(new DefaultRankProfile(schema, rankProfileRegistry, schema.rankingConstants()));
-            rankProfileRegistry.add(new UnrankedRankProfile(schema, rankProfileRegistry, schema.rankingConstants()));
             resultList.add(schema);
         }
         return resultList;
@@ -532,6 +535,24 @@ public class ConvertSchemaCollection {
             (hnswIndexParams -> index.setHnswIndexParams(hnswIndexParams));
     }
 
+    private void convertNormalizing(SDField field, String setting) {
+        NormalizeLevel.Level level;
+        if ("none".equals(setting)) {
+            level = NormalizeLevel.Level.NONE;
+        } else if ("codepoint".equals(setting)) {
+            level = NormalizeLevel.Level.CODEPOINT;
+        } else if ("lowercase".equals(setting)) {
+            level = NormalizeLevel.Level.LOWERCASE;
+        } else if ("accent".equals(setting)) {
+            level = NormalizeLevel.Level.ACCENT;
+        } else if ("all".equals(setting)) {
+            level = NormalizeLevel.Level.ACCENT;
+        } else {
+            throw new IllegalArgumentException("invalid normalizing setting: " + setting);
+        }
+        field.setNormalizing(new NormalizeLevel(level, true));
+    }
+
     // from grammar, things that can be inside struct-field block
     private void convertCommonFieldSettings(SDField field, ParsedField parsed, ParsedDocument context) {
         convertMatchSettings(field, parsed.matchSettings());
@@ -541,6 +562,8 @@ public class ConvertSchemaCollection {
             // field.dumpIdentity();
             field.setIndexingScript(indexing.get().script());
         }
+        parsed.getStemming().ifPresent(value -> field.setStemming(value));
+        parsed.getNormalizing().ifPresent(value -> convertNormalizing(field, value));
         for (var attribute : parsed.getAttributes()) {
             convertAttribute(field, attribute);
         }
@@ -596,6 +619,9 @@ public class ConvertSchemaCollection {
                 //var tmp = new TemporarySDField(structField.name(), fieldType, structProxy);
                 var tmp = new SDField(structProxy, structField.name(), fieldType);
                 structProxy.addField(tmp);
+            }
+            for (String inherit : struct.getInherited()) {
+                structProxy.inherit(new DataTypeName(inherit));                
             }
             document.addType(structProxy);
         }
@@ -680,7 +706,7 @@ public class ConvertSchemaCollection {
     private void convertImportField(Schema schema, ParsedSchema.ImportedField f) {
         // needs rethinking
         schema.temporaryImportedFields().get().add
-            (new TemporaryImportedField(f.asFieldName, f.refRieldName, f.foreignFieldName));
+            (new TemporaryImportedField(f.asFieldName, f.refFieldName, f.foreignFieldName));
     }
 
     private void convertFieldSet(Schema schema, ParsedFieldSet parsed) {
@@ -697,8 +723,104 @@ public class ConvertSchemaCollection {
         schema.fieldSets().userFieldSets().get(setName).setMatching(tmp.getMatching());
     }
 
-    private void convertRankProfile(Schema schema, ParsedRankProfile rankProfile) {
-        
+    void handleFPR(RankProfile profile, String value) {
+        System.err.println("handleFPR profile="+profile+", value="+value);
+        profile.setFirstPhaseRanking(value);
+    }
+
+    private RankProfile makeRankProfile(Schema schema, String name) {
+        if (name.equals("default")) {
+            return rankProfileRegistry.get(schema, "default");
+        }
+        return new RankProfile(name, schema, rankProfileRegistry, schema.rankingConstants());
+    }
+
+    private void convertRankProfile(Schema schema, ParsedRankProfile parsed) {
+        if (documentsOnly) {
+            return;
+        }
+        final RankProfile profile = makeRankProfile(schema, parsed.name());
+        assert(profile != null);
+        for (String name : parsed.getInherited()) {
+            profile.inherit(name);
+        }
+        parsed.isStrict().ifPresent(value -> profile.setStrict(value));
+
+        for (var entry : parsed.getConstants().entrySet()) {
+            String name = entry.getKey();
+            Value value = entry.getValue();
+            if (value instanceof TensorValue) {
+                var tensor = (TensorValue) value;
+                profile.addConstantTensor(name, tensor);
+            } else {
+                profile.addConstant(name, value);
+            }
+        }
+
+        for (var func : parsed.getFunctions()) {
+            String name = func.name();
+            List<String> parameters = func.getParameters();
+            String expression = func.getExpression();
+            boolean inline = func.getInline();
+            profile.addFunction(name, parameters, expression, inline);
+        }
+
+        parsed.getRankScoreDropLimit().ifPresent
+            (value -> profile.setRankScoreDropLimit(value));
+        parsed.getTermwiseLimit().ifPresent
+            (value -> profile.setTermwiseLimit(value));
+        parsed.getKeepRankCount().ifPresent
+            (value -> profile.setKeepRankCount(value));
+        parsed.getMinHitsPerThread().ifPresent
+            (value -> profile.setMinHitsPerThread(value));
+        parsed.getNumSearchPartitions().ifPresent
+            (value -> profile.setNumSearchPartitions(value));
+        parsed.getNumThreadsPerSearch().ifPresent
+            (value -> profile.setNumThreadsPerSearch(value));
+        parsed.getReRankCount().ifPresent
+            (value -> profile.setRerankCount(value));
+
+        parsed.getMatchPhaseSettings().ifPresent
+            (value -> profile.setMatchPhaseSettings(value));
+
+        parsed.getFirstPhaseExpression().ifPresent
+            (value -> profile.setFirstPhaseRanking(value));
+        parsed.getSecondPhaseExpression().ifPresent
+            (value -> profile.setSecondPhaseRanking(value));
+
+        parsed.getMatchFeatures().ifPresent
+            (value -> profile.addMatchFeatures(value));
+        parsed.getRankFeatures().ifPresent
+            (value -> profile.addRankFeatures(value));
+        parsed.getSummaryFeatures().ifPresent
+            (value -> profile.addSummaryFeatures(value));
+
+        parsed.getInheritedMatchFeatures().ifPresent
+            (value -> profile.setInheritedMatchFeatures(value));
+        parsed.getInheritedSummaryFeatures().ifPresent
+            (value -> profile.setInheritedSummaryFeatures(value));
+        if (parsed.getIgnoreDefaultRankFeatures()) {
+            profile.setIgnoreDefaultRankFeatures(true);
+        }
+
+        for (var mutateOp : parsed.getMutateOperations()) {
+            profile.addMutateOperation(mutateOp);
+        }
+        parsed.getFieldsWithRankFilter().forEach
+            ((fieldName, isFilter) -> profile.addRankSetting(fieldName, RankProfile.RankSetting.Type.PREFERBITVECTOR, isFilter));
+
+        parsed.getFieldsWithRankWeight().forEach
+            ((fieldName, weight) -> profile.addRankSetting(fieldName, RankProfile.RankSetting.Type.WEIGHT, weight));
+
+        parsed.getFieldsWithRankType().forEach
+            ((fieldName, rankType) -> profile.addRankSetting(fieldName, RankProfile.RankSetting.Type.RANKTYPE, RankType.fromString(rankType)));
+
+        parsed.getRankProperties().forEach
+            ((key, val) -> profile.addRankProperty(key, val));
+
+        // always?
+        System.err.println("register rank profile "+profile+" in schema "+schema);
+        rankProfileRegistry.add(profile);
     }
 
     private void convertSchema(Schema schema, ParsedSchema parsed) {
@@ -728,7 +850,9 @@ public class ConvertSchemaCollection {
         for (var onnxModel : parsed.getOnnxModels()) {
             schema.onnxModels().add(onnxModel);
         }
-        for (var rankProfile : parsed.getRankProfiles().values()) {
+        rankProfileRegistry.add(new DefaultRankProfile(schema, rankProfileRegistry, schema.rankingConstants()));
+        rankProfileRegistry.add(new UnrankedRankProfile(schema, rankProfileRegistry, schema.rankingConstants()));
+        for (var rankProfile : parsed.getRankProfiles()) {
             convertRankProfile(schema, rankProfile);
         }
     }

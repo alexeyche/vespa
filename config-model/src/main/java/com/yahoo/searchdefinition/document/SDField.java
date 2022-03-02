@@ -7,6 +7,7 @@ import com.yahoo.document.DocumentType;
 import com.yahoo.document.Field;
 import com.yahoo.document.MapDataType;
 import com.yahoo.document.StructDataType;
+import com.yahoo.document.TemporaryStructuredDataType;
 import com.yahoo.document.TensorDataType;
 import com.yahoo.language.Linguistics;
 import com.yahoo.language.process.Embedder;
@@ -183,6 +184,8 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
         populate(populate, repo, name, dataType, null, 0);
     }
 
+    private boolean isPopulated = false;
+
     private void populate(boolean populate, SDDocumentType repo, String name, DataType dataType, Matching fieldMatching, int recursion) {
         if (dataType instanceof TensorDataType) {
             TensorType type = ((TensorDataType)dataType).getTensorType();
@@ -275,6 +278,7 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
         }
     }
 
+    @SuppressWarnings("deprecation")
     public void populateWithStructFields(SDDocumentType sdoc, String name, DataType dataType, int recursion) {
         DataType dt = getFirstStructOrMapRecursive();
         //System.err.println("populateWithStructFields for "+name+" datatype dt="+dt+" in "+sdoc);
@@ -294,17 +298,25 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
             if (dataType instanceof CollectionDataType) {
                 dataType = ((CollectionDataType)dataType).getNestedType();
             }
-            if (dataType instanceof StructDataType) {
+            if (dataType instanceof TemporaryStructuredDataType) {
+                System.err.println("found temp struct "+dataType);
                 SDDocumentType subType = sdoc != null ? sdoc.getType(dataType.getName()) : null;
                 if (subType == null) {
                     throw new IllegalArgumentException("Could not find struct '" + dataType.getName() + "'.");
                 }
-                //System.err.println("found struct "+dataType);
                 for (Field field : subType.fieldSet()) {
-                    //System.err.println("with field: "+field);
+                    System.err.println("with field: "+field);
                     SDField subField = new SDField(sdoc, name.concat(".").concat(field.getName()), field.getDataType(),
                                                    subType, new Matching(), true, recursion + 1);
-                    //System.err.println("-> subfield: "+subField);
+                    structFields.putIfAbsent(field.getName(), subField);
+                }
+            } else if (dataType instanceof StructDataType) {
+                System.err.println("found struct "+dataType);
+                var sdt = (StructDataType) dataType;
+                for (Field field : sdt.getFields()) {
+                    System.err.println("with field: "+field);
+                    SDField subField = new SDField(sdoc, name.concat(".").concat(field.getName()), field.getDataType(),
+                                                   getOwnerDocType(), new Matching(), true, recursion + 1);
                     structFields.putIfAbsent(field.getName(), subField);
                 }
             }
@@ -368,9 +380,10 @@ public class SDField extends Field implements TypedKey, FieldOperationContainer,
                             throw new IllegalArgumentException("Field in struct is not SDField " + f.getName());
                         }
                     }
-                } else {
-                    throw new IllegalArgumentException("Could not find struct " + dataType.getName());
                 }
+                // else {
+                // throw new IllegalArgumentException("Could not find struct " + dataType.getName());
+                // }
             }
         }
     }

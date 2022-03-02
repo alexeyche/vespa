@@ -453,6 +453,7 @@ ParsedSchema rootDocumentItem(ParsedSchema schema) :
     ( doc = namedDocument() {
         if (schema == null) schema = new ParsedSchema(doc.name());
         schema.addDocument(doc);
+        schema.setDocumentWithoutSchema();
         return schema;
     } )
 }
